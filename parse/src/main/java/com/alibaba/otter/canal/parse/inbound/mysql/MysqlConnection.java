@@ -40,7 +40,7 @@ import com.taobao.tddl.dbsync.binlog.LogContext;
 import com.taobao.tddl.dbsync.binlog.LogDecoder;
 import com.taobao.tddl.dbsync.binlog.LogEvent;
 import com.taobao.tddl.dbsync.binlog.event.FormatDescriptionLogEvent;
-
+// 对 driver 模块的 MysqlConnector 进行了封装，在开始 dump binlog 前，会对当前链接进行一些参数设置
 public class MysqlConnection implements ErosaConnection {
 
     private static final Logger logger         = LoggerFactory.getLogger(MysqlConnection.class);

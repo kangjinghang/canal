@@ -15,7 +15,7 @@ import com.alibaba.otter.canal.server.CanalMQStarter;
 
 /**
  * Canal server 启动类
- *
+ * CanalLauncher 实际上只是负责读取 canal.properties 配置文件，然后构造 CanalController 对象，并通过其 start 和 stop 方法来开启和停止 canal。
  * @author rewerma 2020-01-27
  * @version 1.0.2
  */
@@ -86,20 +86,19 @@ public class CanalStarter {
 
         logger.info("## start the canal server.");
         controller = new CanalController(properties);
-        controller.start();
-        logger.info("## the canal server is running now ......");
+        controller.start();logger.info("## the canal server is running now ......");
         shutdownThread = new Thread(() -> {
             try {
                 logger.info("## stop the canal server");
-                controller.stop();
-                CanalLauncher.runningLatch.countDown();
+                controller.stop(); // 关闭
+                CanalLauncher.runningLatch.countDown(); // shutdown hook
             } catch (Throwable e) {
                 logger.warn("##something goes wrong when stopping canal Server:", e);
             } finally {
                 logger.info("## canal server is down.");
             }
         });
-        Runtime.getRuntime().addShutdownHook(shutdownThread);
+        Runtime.getRuntime().addShutdownHook(shutdownThread); // 3.关闭 canal，通过添加 JVM 的钩子，JVM 停止前会回调 run 方法，其内部调用 controller.stop() 方法进行停止
 
         if (canalMQProducer != null) {
             canalMQStarter = new CanalMQStarter(canalMQProducer);

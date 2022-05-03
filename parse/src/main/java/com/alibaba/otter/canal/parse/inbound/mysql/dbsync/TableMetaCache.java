@@ -24,7 +24,7 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 
 /**
- * 处理table meta解析和缓存
+ * 处理table meta解析和缓存。用于缓存表字段信息。当表结构变更后，也会跟着自动跟新。
  *
  * @author jianghang 2013-1-17 下午10:15:16
  * @version 1.0.0

@@ -33,7 +33,7 @@ import com.alibaba.otter.canal.protocol.position.LogPosition;
 import com.taobao.tddl.dbsync.binlog.LogEvent;
 
 /**
- * 基于向mysql server复制binlog实现
+ * 基于向mysql server复制binlog实现。伪装成单个 mysql 实例的 slave 解析 binglog 日志
  *
  * <pre>
  * 1. 自身不控制mysql主备切换，由ha机制来控制. 比如接入tddl/cobar/自身心跳包成功率

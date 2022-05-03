@@ -8,7 +8,7 @@ import com.alibaba.otter.canal.common.utils.CanalToStringStyle;
 
 /**
  * 服务端running状态信息
- * 
+ * 除了 CanalInstance 需要监控，CanalServer 本身也需要监控，封装了 canal server 监听的 ip 和端口等信息。
  * @author jianghang 2012-11-22 下午03:11:30
  * @version 1.0.0
  */

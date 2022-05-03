@@ -20,7 +20,7 @@ import com.google.protobuf.ByteString;
 public class Event implements Serializable {
 
     private static final long serialVersionUID = 1333330351758762739L;
-
+    // 记录这个 Event 的来源信息 mysql 地址 (sourceAddress) 和 slaveId。
     private LogIdentity       logIdentity;                            // 记录数据产生的来源
     private ByteString        rawEntry;
 
@@ -35,7 +35,7 @@ public class Event implements Serializable {
     private int               rowsCount;
 
     // ==== https://github.com/alibaba/canal/issues/1019
-    private CanalEntry.Entry  entry;
+    private CanalEntry.Entry  entry; // 封装了 binlog 事件的数据
 
     public Event(){
     }

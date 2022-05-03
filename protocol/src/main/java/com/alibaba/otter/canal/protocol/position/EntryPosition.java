@@ -11,7 +11,7 @@ public class EntryPosition extends TimePosition {
     private static final long serialVersionUID      = 81432665066427482L;
     public static final int   EVENTIDENTITY_SEGMENT = 3;
     public static final char  EVENTIDENTITY_SPLIT   = (char) 5;
-
+    // 作为 start 或者 end 时，表示是否包含当前 entry。MemoryEventStoreWithBuffer#get方法源码分析时，我们已经看到，当included值为false时，会把当前get位置+1，然后开始获取Event；当为true时，则直接从当前get位置开始获取数据。
     private boolean           included              = false;
     private String            journalName;
     private Long              position;

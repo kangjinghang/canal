@@ -11,10 +11,10 @@ import com.alibaba.otter.canal.common.utils.CanalToStringStyle;
  * @author zebin.xuzb @ 2012-6-20
  * @version 1.0.0
  */
-public class ClientIdentity implements Serializable {
+public class ClientIdentity implements Serializable { // 客户端身份的标识
 
     private static final long serialVersionUID = -8262100681930834834L;
-    private String            destination;
+    private String            destination; // CanalServerWithEmbedded 就是根据 ClientIdentity 中的 destination 参数确定这个请求要交给哪个 CanalInstance 处理的
     private short             clientId;
     private String            filter;
 
