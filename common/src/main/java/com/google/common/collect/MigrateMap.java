@@ -26,7 +26,7 @@ public class MigrateMap {
 
         return new MigrateConcurrentMap<>(computingCache);
     }
-
+    // get 的时候，如果 cache 中还没有值，就通过 computingFunction 创建
     public static <K, V> ConcurrentMap<K, V> makeComputingMap(Function<? super K, ? extends V> computingFunction) {
         return makeComputingMap(CacheBuilder.newBuilder(), computingFunction);
     }

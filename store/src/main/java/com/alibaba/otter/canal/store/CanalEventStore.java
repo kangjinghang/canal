@@ -14,7 +14,7 @@ import com.alibaba.otter.canal.store.model.Events;
  * @version 1.0.0
  */
 public interface CanalEventStore<T> extends CanalLifeCycle, CanalStoreScavenge {
-
+    // ========================== Put操作 ==============================
     /**
      * 添加一组数据对象，阻塞等待其操作完成 (比如一次性添加一个事务数据)
      */
@@ -44,7 +44,7 @@ public interface CanalEventStore<T> extends CanalLifeCycle, CanalStoreScavenge {
      * 添加一个数据对象
      */
     boolean tryPut(T data) throws CanalStoreException;
-
+    // ========================== GET操作 ==============================
     /**
      * 获取指定大小的数据，阻塞等待其操作完成
      */
@@ -70,7 +70,7 @@ public interface CanalEventStore<T> extends CanalLifeCycle, CanalStoreScavenge {
      * 获取第一条数据的position，如果没有数据返回为null
      */
     Position getFirstPosition() throws CanalStoreException;
-
+    // ========================= Ack操作 ==============================
     /**
      * 删除{@linkplain Position}之前的数据
      */

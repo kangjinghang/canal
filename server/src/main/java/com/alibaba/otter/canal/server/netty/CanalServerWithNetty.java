@@ -22,14 +22,14 @@ import com.alibaba.otter.canal.server.netty.handler.SessionHandler;
 
 /**
  * 基于netty网络服务的server实现
- * 
+ * 在独立部署 canal server 时，Canal 客户端发送的所有请求都交给 CanalServerWithNetty 处理解析，解析完成之后委派给了交给 CanalServerWithEmbedded 进行处理。因此 CanalServerWithNetty 就是一个马甲而已。CanalServerWithEmbedded 才是核心。
  * @author jianghang 2012-7-12 下午01:34:49
  * @version 1.0.0
  */
 public class CanalServerWithNetty extends AbstractCanalLifeCycle implements CanalServer {
-
-    private CanalServerWithEmbedded embeddedServer;      // 嵌入式server
-    private String                  ip;
+    // 单例的，所以与 CanalController 中的 embededCanalServer 是统一个对象
+    private CanalServerWithEmbedded embeddedServer;      // 嵌入式server。因为 CanalServerWithNetty 需要将请求委派给 CanalServerWithEmbeded 处理，因此其维护了 embeddedServer 对象。
+    private String                  ip; // netty 监听的网络 ip 和端口，client 通过这个 ip 和端口与 server 通信
     private int                     port;
     private Channel                 serverChannel = null;
     private ServerBootstrap         bootstrap     = null;
@@ -55,7 +55,7 @@ public class CanalServerWithNetty extends AbstractCanalLifeCycle implements Cana
     public void start() {
         super.start();
 
-        if (!embeddedServer.isStart()) {
+        if (!embeddedServer.isStart()) { // 优先启动内嵌的canal server，因为基于netty的实现需要将请求委派给其处理
             embeddedServer.start();
         }
 
@@ -76,19 +76,19 @@ public class CanalServerWithNetty extends AbstractCanalLifeCycle implements Cana
         // 构造对应的pipeline
         bootstrap.setPipelineFactory(() -> {
             ChannelPipeline pipelines = Channels.pipeline();
-            pipelines.addLast(FixedHeaderFrameDecoder.class.getName(), new FixedHeaderFrameDecoder());
+            pipelines.addLast(FixedHeaderFrameDecoder.class.getName(), new FixedHeaderFrameDecoder()); // 主要是处理编码、解码。因为网路传输的传入的都是二进制流，FixedHeaderFrameDecoder 的作用就是对其进行解析
             // support to maintain child socket channel.
             pipelines.addLast(HandshakeInitializationHandler.class.getName(),
-                new HandshakeInitializationHandler(childGroups));
+                new HandshakeInitializationHandler(childGroups)); // 处理 client 与 server 握手
             pipelines.addLast(ClientAuthenticationHandler.class.getName(),
-                new ClientAuthenticationHandler(embeddedServer));
-
+                new ClientAuthenticationHandler(embeddedServer)); // client 身份验证
+            // SessionHandler 用于真正的处理客户端请求
             SessionHandler sessionHandler = new SessionHandler(embeddedServer);
             pipelines.addLast(SessionHandler.class.getName(), sessionHandler);
             return pipelines;
         });
 
-        // 启动
+        // 启动，当 bind 方法被调用时，netty 开始真正的监控某个端口，此时客户端对这个端口的请求可以被接收到
         if (StringUtils.isNotEmpty(ip)) {
             this.serverChannel = bootstrap.bind(new InetSocketAddress(this.ip, this.port));
         } else {

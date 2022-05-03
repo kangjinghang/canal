@@ -1,3 +1,4 @@
+
 <configuration scan="true" scanPeriod=" 5 seconds">
 	<jmxConfigurator />
 	<appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
@@ -62,35 +63,42 @@
 	</appender>
 
 	<logger name="com.alibaba.otter.canal.instance" additivity="false">
-		<level value="INFO" />
+		<level value="DEBUG" />
 		<appender-ref ref="CANAL-ROOT" />
+		<appender-ref ref="STDOUT"/>
 	</logger>
 	<logger name="com.alibaba.otter.canal.deployer" additivity="false">
-		<level value="INFO" />
+		<level value="DEBUG" />
 		<appender-ref ref="CANAL-ROOT" />
+		<appender-ref ref="STDOUT"/>
 	</logger>
 	<logger name="com.alibaba.otter.canal.meta.FileMixedMetaManager" additivity="false">
-		<level value="INFO" />
+		<level value="DEBUG" />
 		<appender-ref ref="CANAL-META" />
+		<appender-ref ref="STDOUT"/>
 	</logger>
 	<logger name="com.alibaba.otter.canal.connector.kafka" additivity="false">
-		<level value="INFO" />
+		<level value="DEBUG" />
 		<appender-ref ref="CANAL-ROOT" />
+		<appender-ref ref="STDOUT"/>
 	</logger>
 	<logger name="com.alibaba.otter.canal.connector.rocketmq" additivity="false">
-		<level value="INFO" />
+		<level value="DEBUG" />
 		<appender-ref ref="CANAL-ROOT" />
+		<appender-ref ref="STDOUT"/>
 	</logger>
 	<logger name="com.alibaba.otter.canal.connector.rabbitmq" additivity="false">
-		<level value="INFO" />
+		<level value="DEBUG" />
 		<appender-ref ref="CANAL-ROOT" />
+		<appender-ref ref="STDOUT"/>
 	</logger>
-	<logger name="com.alibaba.otter.canal.connector.pulsarmq" additivity="false">
-		<level value="INFO" />
+	<logger name="com.alibaba.otter.canal" additivity="false">
+		<level value="DEBUG" />
 		<appender-ref ref="CANAL-ROOT" />
+		<appender-ref ref="STDOUT"/>
 	</logger>
-	<root level="WARN">
-		<!-- <appender-ref ref="STDOUT"/>  -->
+	<root level="INFO">
+		<appender-ref ref="STDOUT"/>
 		<appender-ref ref="CANAL-ROOT" />
 	</root>
 </configuration>

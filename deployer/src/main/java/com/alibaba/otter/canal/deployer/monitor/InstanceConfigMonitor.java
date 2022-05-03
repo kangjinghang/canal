@@ -9,8 +9,8 @@ import com.alibaba.otter.canal.common.CanalLifeCycle;
  * @version 1.0.1
  */
 public interface InstanceConfigMonitor extends CanalLifeCycle {
-
+    // 当需要对一个 destination 进行监听时，调用 register 方法
     void register(String destination, InstanceAction action);
-
+    // 当取消对一个 destination 监听时，调用 unregister 方法
     void unregister(String destination);
 }

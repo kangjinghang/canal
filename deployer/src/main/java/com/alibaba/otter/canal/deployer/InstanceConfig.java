@@ -6,7 +6,7 @@ import com.alibaba.otter.canal.common.utils.CanalToStringStyle;
 
 /**
  * 启动的相关配置
- * 
+ * 相关 get 方法在执行时，会按照以下逻辑进行判断：如果没有自身没有这个配置，则返回全局配置，如果有，则返回自身的配置。通过这种方式实现对全局配置的覆盖。
  * @author jianghang 2012-11-8 下午02:50:54
  * @version 1.0.0
  */

@@ -29,22 +29,22 @@ import com.alibaba.otter.canal.store.model.Event;
 public class AbstractCanalInstance extends AbstractCanalLifeCycle implements CanalInstance {
 
     private static final Logger                      logger = LoggerFactory.getLogger(AbstractCanalInstance.class);
-
+    // 和 manager 交互唯一标示
     protected Long                                   canalId;                                                      // 和manager交互唯一标示
-    protected String                                 destination;                                                  // 队列名字
-    protected CanalEventStore<Event>                 eventStore;                                                   // 有序队列
-
+    protected String                                 destination;    // 队列名字                                              // 队列名字
+    protected CanalEventStore<Event>                 eventStore;   // 有序队列                                                // 有序队列
+    // 解析对应的数据信息
     protected CanalEventParser                       eventParser;                                                  // 解析对应的数据信息
-    protected CanalEventSink<List<CanalEntry.Entry>> eventSink;                                                    // 链接parse和store的桥接器
-    protected CanalMetaManager                       metaManager;                                                  // 消费信息管理器
-    protected CanalAlarmHandler                      alarmHandler;                                                 // alarm报警机制
+    protected CanalEventSink<List<CanalEntry.Entry>> eventSink;    // 链接parse和store的桥接器                                                 // 链接parse和store的桥接器
+    protected CanalMetaManager                       metaManager;  // 消费信息管理器                                               // 消费信息管理器
+    protected CanalAlarmHandler                      alarmHandler; // alarm报警机制                                               // alarm报警机制
     protected CanalMQConfig                          mqConfig;                                                     // mq的配置
 
 
-
+    // 主要是更新一下 eventParser 中的 filter
     @Override
     public boolean subscribeChange(ClientIdentity identity) {
-        if (StringUtils.isNotEmpty(identity.getFilter())) {
+        if (StringUtils.isNotEmpty(identity.getFilter())) { // 如果设置了 filter
             logger.info("subscribe filter change to " + identity.getFilter());
             AviaterRegexFilter aviaterFilter = new AviaterRegexFilter(identity.getFilter());
 
@@ -71,7 +71,7 @@ public class AbstractCanalInstance extends AbstractCanalLifeCycle implements Can
         // 后续内存版的一对多分发，可以考虑
         return true;
     }
-
+    // 启动顺序为：metaManager —> eventStore —> eventSink —> eventParser
     @Override
     public void start() {
         super.start();
@@ -92,9 +92,9 @@ public class AbstractCanalInstance extends AbstractCanalLifeCycle implements Can
         }
 
         if (!eventParser.isStart()) {
-            beforeStartEventParser(eventParser);
+            beforeStartEventParser(eventParser); // 启动前执行一些操作
             eventParser.start();
-            afterStartEventParser(eventParser);
+            afterStartEventParser(eventParser); // 启动后执行一些操作
         }
         logger.info("start successful....");
     }
@@ -105,9 +105,9 @@ public class AbstractCanalInstance extends AbstractCanalLifeCycle implements Can
         logger.info("stop CannalInstance for {}-{} ", new Object[] { canalId, destination });
 
         if (eventParser.isStart()) {
-            beforeStopEventParser(eventParser);
+            beforeStopEventParser(eventParser); // 停止前执行一些操作
             eventParser.stop();
-            afterStopEventParser(eventParser);
+            afterStopEventParser(eventParser); // 停止后执行一些操作
         }
 
         if (eventSink.isStart()) {
@@ -130,15 +130,15 @@ public class AbstractCanalInstance extends AbstractCanalLifeCycle implements Can
     }
 
     protected void beforeStartEventParser(CanalEventParser eventParser) {
-
+        // 1. 判断 eventParser 的类型是否是 GroupEventParser
         boolean isGroup = (eventParser instanceof GroupEventParser);
-        if (isGroup) {
+        if (isGroup) { // 2. 如果是 GroupEventParser，则循环启动其内部包含的每一个 CanalEventParser，依次调用 startEventParserInternal 方法
             // 处理group的模式
             List<CanalEventParser> eventParsers = ((GroupEventParser) eventParser).getEventParsers();
             for (CanalEventParser singleEventParser : eventParsers) {// 需要遍历启动
                 startEventParserInternal(singleEventParser, true);
             }
-        } else {
+        } else { // 如果不是，说明是一个普通的 CanalEventParser，直接调用 startEventParserInternal 方法
             startEventParserInternal(eventParser, false);
         }
     }
@@ -175,7 +175,7 @@ public class AbstractCanalInstance extends AbstractCanalLifeCycle implements Can
      * 初始化单个eventParser，不需要考虑group
      */
     protected void startEventParserInternal(CanalEventParser eventParser, boolean isGroup) {
-        if (eventParser instanceof AbstractEventParser) {
+        if (eventParser instanceof AbstractEventParser) { // 1. 启动 CanalLogPositionManager
             AbstractEventParser abstractEventParser = (AbstractEventParser) eventParser;
             // 首先启动log position管理器
             CanalLogPositionManager logPositionManager = abstractEventParser.getLogPositionManager();
@@ -184,7 +184,7 @@ public class AbstractCanalInstance extends AbstractCanalLifeCycle implements Can
             }
         }
 
-        if (eventParser instanceof MysqlEventParser) {
+        if (eventParser instanceof MysqlEventParser) {  // 2. 启动 CanalHAController
             MysqlEventParser mysqlEventParser = (MysqlEventParser) eventParser;
             CanalHAController haController = mysqlEventParser.getHaController();
 

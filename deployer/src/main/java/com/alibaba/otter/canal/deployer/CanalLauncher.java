@@ -19,7 +19,7 @@ import com.alibaba.otter.canal.instance.manager.plain.PlainCanalConfigClient;
 
 /**
  * canal独立版本启动的入口类
- *
+ * 1.读取 canal.properties 文件中的配置。2.利用读取的配置构造一个 CanalController 实例，将所有的启动操作都委派给 CanalController 进行处理。3.利用读取的配置构造一个 CanalController 实例，将所有的启动操作都委派给 CanalController 进行处理。
  * @author jianghang 2012-11-6 下午05:20:49
  * @version 1.0.0
  */
@@ -35,7 +35,7 @@ public class CanalLauncher {
         try {
             logger.info("## set default uncaught exception handler");
             setGlobalUncaughtExceptionHandler();
-
+            // 1. 读取 canal.properties 文件中配置，默认读取 classpath 下的 canal.properties
             logger.info("## load canal configurations");
             String conf = System.getProperty("canal.conf", "classpath:canal.properties");
             Properties properties = new Properties();
@@ -45,7 +45,7 @@ public class CanalLauncher {
             } else {
                 properties.load(new FileInputStream(conf));
             }
-
+            // 2. 启动 canal，首先将 properties 对象传递给 CanalController，然后调用其 start 方法启动
             final CanalStarter canalStater = new CanalStarter(properties);
             String managerAddress = CanalController.getProperty(properties, CanalConstants.CANAL_ADMIN_MANAGER);
             if (StringUtils.isNotEmpty(managerAddress)) {

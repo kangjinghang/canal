@@ -26,7 +26,7 @@ import com.alibaba.otter.canal.parse.driver.mysql.utils.PacketManager;
 
 /**
  * 基于mysql socket协议的链接实现
- * 
+ * 表示一个数据库连接，作用类似于java.sql.Connection
  * @author jianghang 2013-2-18 下午09:22:30
  * @version 1.0.1
  */
@@ -88,7 +88,7 @@ public class MysqlConnector {
             logger.error("the channel can't be connected twice.");
         }
     }
-
+    // 先调用 disconnect 方法关闭原有连接，然后使用 connect 方法创建一个新的连接
     public void reconnect() throws IOException {
         disconnect();
         connect();
@@ -132,7 +132,7 @@ public class MysqlConnector {
     public boolean isConnected() {
         return this.channel != null && this.channel.isConnected();
     }
-
+    // 如果希望创建多个连接，可以 fork 出一个新的 MysqlConnector 实例，再调用这个新 MysqlConnector 实例的 connect 方法建立连接。
     public MysqlConnector fork() {
         MysqlConnector connector = new MysqlConnector();
         connector.setCharsetNumber(getCharsetNumber());

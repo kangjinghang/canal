@@ -39,7 +39,7 @@ import com.google.common.collect.MigrateMap;
 
 /**
  * 嵌入式版本实现
- *
+ * 在独立部署 canal server 时，Canal 客户端发送的所有请求都交给 CanalServerWithNetty 处理解析，解析完成之后委派给了交给 CanalServerWithEmbedded 进行处理。因此 CanalServerWithNetty 就是一个马甲而已。CanalServerWithEmbedded 才是核心。
  * @author jianghang 2012-7-12 下午01:34:00
  * @author zebin.xuzb
  * @version 1.0.0
@@ -47,7 +47,7 @@ import com.google.common.collect.MigrateMap;
 public class CanalServerWithEmbedded extends AbstractCanalLifeCycle implements CanalServer, CanalService {
 
     private static final Logger        logger  = LoggerFactory.getLogger(CanalServerWithEmbedded.class);
-    private Map<String, CanalInstance> canalInstances;
+    private Map<String, CanalInstance> canalInstances; // key 为 destination，value 为对应的 CanalInstance，根据客户端请求携带的 destination 参数将其转发到对应的 CanalInstance 上去处理
     // private Map<ClientIdentity, Position> lastRollbackPostions;
     private CanalInstanceGenerator     canalInstanceGenerator;
     private int                        metricsPort;
@@ -168,16 +168,16 @@ public class CanalServerWithEmbedded extends AbstractCanalLifeCycle implements C
     @Override
     public void subscribe(ClientIdentity clientIdentity) throws CanalServerException {
         checkStart(clientIdentity.getDestination());
-
+        // 1. 根据客户端要订阅的 destination，找到对应的 CanalInstance
         CanalInstance canalInstance = canalInstances.get(clientIdentity.getDestination());
         if (!canalInstance.getMetaManager().isStart()) {
             canalInstance.getMetaManager().start();
         }
-
+        // 2. 通过 CanalInstance 的 CanalMetaManager 组件进行元数据管理，记录一下当前这个 CanalInstance 有客户端在订阅
         canalInstance.getMetaManager().subscribe(clientIdentity); // 执行一下meta订阅
-
+        // 3. 获取客户端当前订阅的 binlog 位置(Position)，首先尝试从 CanalMetaManager 中获取
         Position position = canalInstance.getMetaManager().getCursor(clientIdentity);
-        if (position == null) {
+        if (position == null) { // 3.1 如果是第一次订阅，尝试从 CanalEventStore 中获取第一个 binlog 的位置，作为客户端订阅开始的位置。
             position = canalInstance.getEventStore().getFirstPosition();// 获取一下store中的第一条
             if (position != null) {
                 canalInstance.getMetaManager().updateCursor(clientIdentity, position); // 更新一下cursor
@@ -188,11 +188,11 @@ public class CanalServerWithEmbedded extends AbstractCanalLifeCycle implements C
         }
 
         // 通知下订阅关系变化
-        canalInstance.subscribeChange(clientIdentity);
+        canalInstance.subscribeChange(clientIdentity);  // 4. 通知下订阅关系变化
     }
 
     /**
-     * 取消订阅
+     * 取消订阅。找到 CanalInstance 对应的 CanalMetaManager，调用其 unsubscribe 取消这个订阅记录
      */
     @Override
     public void unsubscribe(ClientIdentity clientIdentity) throws CanalServerException {
@@ -203,7 +203,7 @@ public class CanalServerWithEmbedded extends AbstractCanalLifeCycle implements C
     }
 
     /**
-     * 查询所有的订阅信息
+     * 查询所有的订阅信息。列出订阅某个 destination 的所有 client
      */
     public List<ClientIdentity> listAllSubscribe(String destination) throws CanalServerException {
         CanalInstance canalInstance = canalInstances.get(destination);
@@ -317,25 +317,25 @@ public class CanalServerWithEmbedded extends AbstractCanalLifeCycle implements C
                                                                                                            throws CanalServerException {
         checkStart(clientIdentity.getDestination());
         checkSubscribe(clientIdentity);
-
+        // 1. 根据 destination 找到要从哪一个 CanalInstance 中获取 binlog 消息
         CanalInstance canalInstance = canalInstances.get(clientIdentity.getDestination());
         synchronized (canalInstance) {
-            // 获取到流式数据中的最后一批获取的位置
+            // 获取到流式数据中的最后一批获取的位置。2. 从 CanalMetaManager 中获取最后一个没有 ack 的 binlog 批次的位置信息。
             PositionRange<LogPosition> positionRanges = canalInstance.getMetaManager().getLastestBatch(clientIdentity);
-
+            // 3. 从 CanalEventStore 中获取 binlog
             Events<Event> events = null;
-            if (positionRanges != null) { // 存在流数据
+            if (positionRanges != null) { // 存在流数据。3.1 如果从 CanalMetaManager 获取到了位置信息，从当前位置继续获取 binlog
                 events = getEvents(canalInstance.getEventStore(), positionRanges.getStart(), batchSize, timeout, unit);
-            } else {// ack后第一次获取
+            } else {// ack后第一次获取。3.2 如果没有获取到 binlog 位置信息，从当前 store 中的第一条开始获取
                 Position start = canalInstance.getMetaManager().getCursor(clientIdentity);
                 if (start == null) { // 第一次，还没有过ack记录，则获取当前store中的第一条
                     start = canalInstance.getEventStore().getFirstPosition();
                 }
-
+                // 从CanalEventStore 中获取 binlog 消息
                 events = getEvents(canalInstance.getEventStore(), start, batchSize, timeout, unit);
             }
-
-            if (CollectionUtils.isEmpty(events.getEvents())) {
+            // 4. 记录批次信息到 CanalMetaManager 中
+            if (CollectionUtils.isEmpty(events.getEvents())) { // 4.1 如果获取到的 binlog 消息为空，构造一个空的 Message 对象，将 batchId 设置为 -1 返回给客户端
                 // logger.debug("getWithoutAck successfully, clientId:{}
                 // batchSize:{} but result
                 // is null",
@@ -343,11 +343,11 @@ public class CanalServerWithEmbedded extends AbstractCanalLifeCycle implements C
                 // batchSize);
                 return new Message(-1, true, new ArrayList()); // 返回空包，避免生成batchId，浪费性能
             } else {
-                // 记录到流式信息
+                // 记录到流式信息 4.2 如果获取到了 binlog 消息，将这个批次的 binlog 消息记录到 CanalMetaMaager 中，并生成一个唯一的 batchId
                 Long batchId = canalInstance.getMetaManager().addBatch(clientIdentity, events.getPositionRange());
                 boolean raw = isRaw(canalInstance.getEventStore());
                 List entrys = null;
-                if (raw) {
+                if (raw) { // 将 Events 转为 Entry
                     entrys = Lists.transform(events.getEvents(), Event::getRawEntry);
                 } else {
                     entrys = Lists.transform(events.getEvents(), Event::getEntry);
@@ -360,7 +360,7 @@ public class CanalServerWithEmbedded extends AbstractCanalLifeCycle implements C
                         batchId,
                         events.getPositionRange());
                 }
-                return new Message(batchId, raw, entrys);
+                return new Message(batchId, raw, entrys); // 构造 Message 返回
             }
 
         }
@@ -391,7 +391,7 @@ public class CanalServerWithEmbedded extends AbstractCanalLifeCycle implements C
     public void ack(ClientIdentity clientIdentity, long batchId) throws CanalServerException {
         checkStart(clientIdentity.getDestination());
         checkSubscribe(clientIdentity);
-
+        // 1. 从 CanalMetaManager 中，移除这个批次的信息
         CanalInstance canalInstance = canalInstances.get(clientIdentity.getDestination());
         PositionRange<LogPosition> positionRanges = null;
         positionRanges = canalInstance.getMetaManager().removeBatch(clientIdentity, batchId); // 更新位置
@@ -419,7 +419,7 @@ public class CanalServerWithEmbedded extends AbstractCanalLifeCycle implements C
         // }
 
         // 更新cursor
-        if (positionRanges.getAck() != null) {
+        if (positionRanges.getAck() != null) { // 2. 记录已经成功消费到的 binlog 位置，以便下一次获取的时候可以从这个位置开始，这是通过 CanalMetaManager 记录的
             canalInstance.getMetaManager().updateCursor(clientIdentity, positionRanges.getAck());
             if (logger.isInfoEnabled()) {
                 logger.info("ack successfully, clientId:{} batchId:{} position:{}",
@@ -428,7 +428,7 @@ public class CanalServerWithEmbedded extends AbstractCanalLifeCycle implements C
                     positionRanges);
             }
         }
-
+        // 3. 从 CanalEventStore 中，将这个批次的 binlog 内容移除
         // 可定时清理数据
         canalInstance.getEventStore().ack(positionRanges.getEnd(), positionRanges.getEndSeq());
     }
